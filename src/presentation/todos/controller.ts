@@ -1,73 +1,80 @@
 import { Request, Response } from "express"
 import { TodosService } from "./services"
+import { CreateTodoDto, UpdateTodoDto } from "../../domain/dtos";
 
 export class TodosController {
     
     constructor() {}
 
-    public getTodos = (req: Request, res: Response) => {
+    public getTodos = async (req: Request, res: Response) => {
 
-        const todos = new TodosService().getTodos();
+        const todos = await new TodosService().getTodos();
         res.json(todos);
 
     }
 
-    public getTodoById = (req: Request, res: Response) => {
+    public getTodoById = async (req: Request, res: Response) => {
 
         const id = parseInt(req.params.id, 10);
-        const todo = new TodosService().getTodoById(id);
+        if (isNaN(id)) return res.status(400).json({ message: `Invalidad ID` });
+
+        const todo = await new TodosService().getTodoById(id);
         
         (todo) 
             ? res.json(todo)
-            : res.status(404).json({ message: "Todo not found" });
+            : res.status(404).json({ message: `TODO with id ${id} not found` });
 
     }
 
-    public addTodo = (req: Request, res: Response) => {
+    public addTodo = async(req: Request, res: Response) => {
 
-        const todo = req.body;
-        const id = new TodosService().addTodo(todo);
+        const [ error, createTodoDTO ] = CreateTodoDto.create(req.body);
+
+        if (error) return res.status(400).json({ message: error });
+
+        const id = await new TodosService().addTodo(createTodoDTO!);
         res.status(201).json({ id });
 
     }
 
-    public updateTodo = (req: Request, res: Response) => {
+    public updateTodo = async (req: Request, res: Response) => {
 
         const id = parseInt(req.params.id, 10);
-        const updateTodo = req.body;
+        const [ error, updateTodo ] = UpdateTodoDto.create({ id, ...req.body });
+        if (error) return res.status(400).json({ message: error });
 
-        const success = new TodosService().updateTodo(id, updateTodo);
-        if (!success) {
-            return res.status(404).json({ message: "Todo not found" });
-        }
+        const success = await new TodosService().updateTodo(id, updateTodo!);
 
-        res.json({ message: "Todo updated successfully" });
+        (success)
+            ? res.json({ message: "Todo updated successfully" })
+            : res.status(404).json({ message: `TODO with id ${id} not found` });
 
     }
 
-    public deleteTodo = (req: Request, res: Response) => {
+    public deleteTodo = async (req: Request, res: Response) => {
 
         const id = parseInt(req.params.id, 10);
-        const success = new TodosService().deleteTodo(id);
+        if (isNaN(id)) return res.status(400).json({ message: `Invalidad ID` });
 
-        if (!success) {
-            return res.status(404).json({ message: "Todo not found" });
-        }
+        const success = await new TodosService().deleteTodo(id);
 
-        res.json({ message: "Todo deleted successfully" });
+        ( success )
+            ? res.json({ message: "Todo deleted successfully" })
+            : res.status(404).json({ message: `TODO with id ${id} not found` });
+               
 
     }
 
-    public clearTodos = (req: Request, res: Response) => {
+    public clearTodos = async (req: Request, res: Response) => {
 
-        new TodosService().clearTodos();
+        await new TodosService().clearTodos();
         res.json({ message: "All todos cleared" });
 
     }
 
-    public getTodosCount = (req: Request, res: Response) => {
+    public getTodosCount = async (req: Request, res: Response) => {
 
-        const count = new TodosService().getTodosCount();
+        const count = await new TodosService().getTodosCount();
         res.json({ count });
 
     }
